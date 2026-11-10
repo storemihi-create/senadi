@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application'
+}
+
+def baseUrl = (project.findProperty('BASE_URL') ?: 'https://senadi.online/').toString().trim()
+if (!baseUrl.endsWith('/')) baseUrl = baseUrl + '/'
+def cleartext = baseUrl.startsWith('http://') ? 'true' : 'false'
+def verName = (project.findProperty('APP_VERSION') ?: '1.0.0').toString()
+def verCode = (project.findProperty('APP_VERSION_CODE') ?: '1').toString().toInteger()
+
+android {
+    namespace 'lk.tuition.app'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 24
+        targetSdk 34
+        versionCode verCode
+        versionName verName
+        buildConfigField 'String', 'BASE_URL', "\"${baseUrl}\""
+        manifestPlaceholders = [cleartext: cleartext]
+    }
+
+    buildFeatures { buildConfig true }
+
+    flavorDimensions 'app'
+    productFlavors {
+        staff {
+            dimension 'app'
+            applicationId 'lk.tuition.staff'
+            resValue 'string', 'app_name', 'Tuition Staff'
+            buildConfigField 'String', 'START_PATH', '"index.php"'
+        }
+        portal {
+            dimension 'app'
+            applicationId 'lk.tuition.portal'
+            resValue 'string', 'app_name', 'Student Portal'
+            buildConfigField 'String', 'START_PATH', '"portal.html"'
+        }
+    }
+
+    signingConfigs {
+        // KEYSTORE_FILE ලබා දී ඇත්නම් (GitHub Secrets) එය භාවිතා කරයි; නැත්නම් debug යතුරෙන් සහතික කරයි (sideload සඳහා ප්‍රමාණවත්)
+        if (System.getenv('KEYSTORE_FILE') && new File(System.getenv('KEYSTORE_FILE')).exists()) {
+            release {
+                storeFile new File(System.getenv('KEYSTORE_FILE'))
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.findByName('release') ?: signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
